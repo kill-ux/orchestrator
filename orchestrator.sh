@@ -6,9 +6,6 @@
 #   ./orchestrator.sh create    boot VMs + provision K3s + configure kubectl
 #   ./orchestrator.sh start     boot VMs (no-op if already running)
 #   ./orchestrator.sh stop      gracefully halt the VMs
-#   ./orchestrator.sh status    show VM and K8s node status
-#   ./orchestrator.sh destroy   tear down the VMs and remove the kubeconfig
-#   ./orchestrator.sh kubeconfig  print the kubectl context name
 # =============================================================================
 
 
@@ -49,7 +46,7 @@ install_kubectl() {
     fi
 
     log "Installing kubectl to ~/.local/bin ..."
-    BINARIES_DIR=~/.local/bin/test
+    BINARIES_DIR=~/.local/bin
     mkdir -p $BINARIES_DIR
 
     # Get the latest stable version
@@ -66,11 +63,18 @@ install_kubectl() {
     fi
 
     chmod +x kubectl
-    mv kubectl ~/.local/bin/test/kubectl
-    echo 'export PATH="$HOME/.local/bin/test:$PATH"' >> ~/.zshrc
-    export PATH="~/.local/bin/test:$PATH"
+    mv kubectl $BINARIES_DIR/kubectl
+    rm kubectl.sha256
 
-    log "kubectl installed successfully at ~/.local/bin/kubectl"
+    if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zshrc; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+        log "Added ~/.local/bin to PATH in ~/.zshrc. Restart your terminal to take effect."
+    fi
+    
+    export PATH="$BINARIES_DIR:$PATH"
+    
+
+    log "kubectl installed successfully at ${BINARIES_DIR}/kubectl"
 }
 
 cmd_create() {
@@ -85,15 +89,31 @@ cmd_create() {
     kubectl get nodes
 }
 
+cmd_start() {
+    log "Starting cluster (vagrant up) ..."
+    vagrant up
+    log "Cluster started."
+}
+
+cmd_stop() {
+    log "Stopping cluster (vagrant halt) ..."
+    vagrant halt
+    log "Cluster stoped."
+}
+
 usage() {
-  sed -n '2,12p' "$0"   # print the header comment block
+  sed -n '2,9p' "$0"   # print the header comment block
 }
 
 main() {
     case "${1:-}" in 
-        create) cmd_create ;;
+        create) cmd_create  ;;
+        start)  cmd_start   ;;
+        stop)   cmd_stop    ;;
         *) err "Unknown command: ${1:-}"; usage; exit 1 ;;
     esac
 }
 
 main $@
+
+

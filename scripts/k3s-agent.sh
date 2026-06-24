@@ -9,7 +9,7 @@ log()  { echo -e "\033[0;34m[agent]\033[0m $*"; }
 warn() { echo -e "\033[1;33m[agent]\033[0m $*"; }
 err()  { echo -e "\033[0;31m[agent]\033[0m $*" >&2; }
 
-if ! systemctl is-active --quiet k3s 2>/dev/null; then
+if systemctl is-active --quiet k3s-agent 2>/dev/null; then
     warn "k3s-agent is already active — skipping join."
     exit 0
 fi
