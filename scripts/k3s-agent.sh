@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# =============================================================================
+# k3s-agent.sh — joins the AGENT node to the existing K3s cluster.
+# =============================================================================
+
+
+log()  { echo -e "\033[0;34m[agent]\033[0m $*"; }
+warn() { echo -e "\033[1;33m[agent]\033[0m $*"; }
+err()  { echo -e "\033[0;31m[agent]\033[0m $*" >&2; }
+
+if ! systemctl is-active --quiet k3s 2>/dev/null; then
+    warn "k3s-agent is already active — skipping join."
+    exit 0
+fi
+
+log "Waiting for $TOKEN_FILE (master must finish first) ..."
+TIMEOUT=60
+ELAPSED=0
+
+while [[ ! -s $TOKEN_FILE ]]; do
+    if (( ELAPSED >= TIMEOUT )); then
+        err "Timed out waiting for ${TOKEN_FILE}. Is the master provisioned?"
+        exit 1
+    fi
+    sleep 3
+    ELAPSED=$((ELAPSED + 3))
+done
+
+TOKEN=$(cat "$TOKEN_FILE")
+
+# joining
+log "Joining cluster at https://$MASTER_IP:6443 ..."
+
+curl -sfL https://get.k3s.io | \
+  K3S_URL="https://$MASTER_IP:6443" \
+  K3S_TOKEN="$TOKEN" \
+  sh -
