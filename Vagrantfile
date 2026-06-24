@@ -20,8 +20,8 @@ Vagrant.configure("2") do |config|
   # --------------------------------------------------------------------------
   # Master node (control plane)
   # --------------------------------------------------------------------------
-  config.vm.define "master" do |master|
-    master.vm.hostname = "master"
+  config.vm.define "master-node" do |master|
+    master.vm.hostname = "master-node"
     master.vm.network :private_network, ip: MASTER_IP
     master.vm.provider "virtualbox" do |vb|
       vb.name = "k3s-master"
@@ -37,8 +37,8 @@ Vagrant.configure("2") do |config|
   # --------------------------------------------------------------------------
   # Agent node (worker)
   # --------------------------------------------------------------------------
-  config.vm.define "agent" do |agent|
-    agent.vm.hostname = "agent"
+  config.vm.define "agent1-node" do |agent|
+    agent.vm.hostname = "agent1-node"
     agent.vm.network :private_network, ip: AGENT_IP
     agent.vm.provider "virtualbox" do |vb|
       vb.name = "k3s-agent"

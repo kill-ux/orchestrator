@@ -14,6 +14,7 @@ set -euo pipefail
 MASTER_IP=${MASTER_IP:-192.168.56.10}
 KUBECONFIG_HOST="$HOME/.kube/config"
 KUBECONFIG_REMOTE="/etc/rancher/k3s/k3s.yaml"
+MASTER_NAME=${MASTER_NAME:-"master-node"}
 
 RED='\033[0;31m'
 GRN='\033[0;32m'
@@ -29,8 +30,8 @@ err()  { echo -e "${RED}[-]${NC} $*" >&2; }
 
 configure_kubectl() {
     mkdir -p $(dirname $KUBECONFIG_HOST)
-    info "Fetching kubeconfig from master and rewriting server URL → $MASTER_IP"
-    vagrant ssh master -c "sudo cat /etc/rancher/k3s/k3s.yaml" \
+    info "Fetching kubeconfig from $MASTER_NAME and rewriting server URL → $MASTER_IP"
+    vagrant ssh $MASTER_NAME -c "sudo cat /etc/rancher/k3s/k3s.yaml" \
         | sed "s/127.0.0.1/$MASTER_IP/g" \
         > $KUBECONFIG_HOST
     
@@ -66,13 +67,14 @@ install_kubectl() {
     mv kubectl $BINARIES_DIR/kubectl
     rm kubectl.sha256
 
-    if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zshrc; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-        log "Added ~/.local/bin to PATH in ~/.zshrc. Restart your terminal to take effect."
-    fi
+    for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
+        if [[ -f "$rc" ]] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$rc"; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$rc"
+            log "Added ~/.local/bin to PATH in $rc (restart terminal to apply)."
+        fi
+    done
     
     export PATH="$BINARIES_DIR:$PATH"
-    
 
     log "kubectl installed successfully at ${BINARIES_DIR}/kubectl"
 }
@@ -98,7 +100,7 @@ cmd_start() {
 cmd_stop() {
     log "Stopping cluster (vagrant halt) ..."
     vagrant halt
-    log "Cluster stoped."
+    log "Cluster stopped."
 }
 
 usage() {
