@@ -32,7 +32,11 @@ TOKEN=$(cat "$TOKEN_FILE")
 # joining
 log "Joining cluster at https://$MASTER_IP:6443 ..."
 
-curl -sfL https://get.k3s.io | \
-  K3S_URL="https://$MASTER_IP:6443" \
-  K3S_TOKEN="$TOKEN" \
-  sh -
+mkdir -p /etc/rancher/k3s
+cat > /etc/rancher/k3s/config.yaml <<EOF
+server: "https://$MASTER_IP:6443"
+token: "$TOKEN"
+node-ip: "$AGENT_IP"
+EOF
+
+curl -sfL https://get.k3s.io | sh -s - agent

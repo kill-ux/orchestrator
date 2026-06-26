@@ -48,6 +48,6 @@ Vagrant.configure("2") do |config|
 
     agent.vm.provision "shell",
       path: "scripts/k3s-agent.sh",
-      env: { "MASTER_IP" => MASTER_IP, "TOKEN_FILE" => TOKEN_FILE }
+      env: { "MASTER_IP" => MASTER_IP, "TOKEN_FILE" => TOKEN_FILE, "AGENT_IP" => AGENT_IP }
   end
 end

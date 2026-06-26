@@ -13,9 +13,15 @@ if systemctl is-active --quiet k3s ; then
     warn "k3s service is already active — skipping install."
 else
     log "Installing K3s server (--tls-san=$MASTER_IP) ..."
-    curl -sfL https://get.k3s.io | \
-        INSTALL_K3S_EXEC="server --tls-san=$MASTER_IP" \
-        sh -s - --write-kubeconfig-mode 644
+    mkdir -p /etc/rancher/k3s
+    cat > /etc/rancher/k3s/config.yaml <<EOF
+node-ip: $MASTER_IP
+tls-san: 
+  - $MASTER_IP
+write-kubeconfig-mode: 644
+EOF
+
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
 fi
 
 log "Waiting for https://${MASTER_IP}:6443/readyz ..."
