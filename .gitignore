@@ -1,2 +1,3 @@
 .vagrant/*
 .k3s-token
+01-secrets.yaml

@@ -1,0 +1,5 @@
+Flask
+pika
+requests
+python-dotenv
+gunicorn

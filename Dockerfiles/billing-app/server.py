@@ -1,0 +1,60 @@
+# server.py
+import os
+import threading
+from flask import Flask, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+from app.orders import Base, Order
+from app.consume_queue import consume_and_store_order
+
+app = Flask(__name__)
+
+BILLING_DB_USER = os.getenv("BILLING_DB_USER")
+BILLING_DB_PASSWORD = os.getenv("BILLING_DB_PASS")
+BILLING_DB_NAME = os.getenv("BILLING_DB_NAME")
+BILLING_APP_PORT = os.getenv("BILLING_APP_PORT")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"postgresql://{BILLING_DB_USER}:{BILLING_DB_PASSWORD}@billing-db:5432/{BILLING_DB_NAME}"
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app, model_class=Base)
+
+with app.app_context():
+    try:
+        db.create_all()
+        print("[*] Database tables verified/created successfully.", flush=True)
+    except Exception as e:
+        print(f"Database setup notice: {e}", flush=True)
+        
+        
+consumer_thread = threading.Thread(
+    target=consume_and_store_order, 
+    args=(app, db), 
+    daemon=True
+)
+consumer_thread.start()
+print("[*] RabbitMQ background consumer thread started.", flush=True)
+
+
+@app.route('/api/billing', methods=['GET'])
+def get_orders():
+    try:
+        all_orders = db.session.execute(db.select(Order)).scalars().all()
+        
+        orders_list = [
+            {
+                "id": o.id,
+                "user_id": o.user_id,
+                "number_of_items": o.number_of_items,
+                "total_amount": o.total_amount
+            } for o in all_orders
+        ]
+        return jsonify({"status": "success", "data": orders_list}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+if __name__ == '__main__':
+    print(f"Starting local development server on port {BILLING_APP_PORT}...", flush=True)
+    app.run(host='0.0.0.0', port=int(BILLING_APP_PORT))

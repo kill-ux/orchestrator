@@ -18,10 +18,12 @@ else
 node-ip: $MASTER_IP
 tls-san: 
   - $MASTER_IP
+node-taint:
+  - "node-role.kubernetes.io/control-plane=:NoSchedule"
 write-kubeconfig-mode: 644
 EOF
 
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+    curl -sfL https://get.k3s.io | sh -
 fi
 
 log "Waiting for https://${MASTER_IP}:6443/readyz ..."

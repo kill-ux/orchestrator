@@ -1,0 +1,39 @@
+## Supervisor         [=> is a parent process that mange all the componenst and whatch theme like if any one craches will be restart theme.
+
+## Api server         [=> is like kubernetese api gateway that act as middleman between all the components.
+
+## Kine               [=> Kine is database but insted of using etcd, k3s use kine that take a requste and translated it to a sqlite requestes(he support other relational databases) we know that etcd is killed memory and cpu and need fast disk so the alternative in small lab is kine btw.
+
+## Scheduler          [=> it is the responsible for moves and mange pods he was the master of whitch node can has the Pod in it
+
+## Controller Manager [=> it is a watcher that look at what user add like when he scale pods so he wants to make you tell hime and when pods crachs he make a new one so his case is just make a moderate weather.
+
+## Kubelet            [=> Runs on each node for ensure that the containers running correctly and he also talk to api-server to knwo what etcd has.
+
+## Flannel            [=> Flannel is an overlay network plugin that enables communication between pods on different nodes.
+
+When Pod A sends a packet to Pod B, the underlying physical network cannot route it because it doesn't recognize Pod IP addresses. To solve this, Flannel intercepts the traffic and wraps (encapsulates) the original packet inside a standard host-to-host packet. Host A then sends this wrapped package across the network to Host B. Once received, Host B unwraps the packet and delivers the original data directly to Pod B.
+
+Kube-Proxy
+
+Kube-proxy is a network agent running on each node that configures the host's firewall rules to route traffic sent to a Service (Cluster IP).
+The Problem
+
+Pods change their IP addresses every time they die or restart. To fix this, Kubernetes uses Services with static, permanent virtual IPs. However, these Service IPs are fake; no actual server or network interface holds them.
+The Solution (Kube-Proxy's Job)
+
+Kube-proxy constantly watches the api-server for changes to Pods and Services. Instead of intercepting packets directly as a middleman, it acts as a configurator.
+
+It writes Destination NAT (DNAT) rules directly into the host machine's Linux kernel (using iptables or IPVS).
+How Traffic Flows:
+
+    A Pod sends a request to a fake Service IP.
+
+    Before the packet leaves the node, the host's Linux kernel intercepts it using the firewall rules written by kube-proxy.
+
+    The kernel rewrites the destination address, replacing the fake Service IP with a real Pod IP.
+
+    Flannel then takes this modified packet and physically routes it across the network to the destination node.
+
+
+## containerd        [=> is containerd runtime like docker but lighter
