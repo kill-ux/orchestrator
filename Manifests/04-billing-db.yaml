@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: inventory-db
+  name: billing-db
   namespace: orchestrator
 spec:
-  serviceName: inventory-db-svc
+  serviceName: billing-db-svc
   replicas: 1
   selector:
     matchLabels:
-      app: inventory-db
+      app: billing-db
   template:
     metadata:
       labels:
-        app: inventory-db
+        app: billing-db
     spec:
       containers:
-        - name: inventory-db
-          image: killux3k/inventory-db:1.0.0
+        - name: billing-db
+          image: killux3k/billing-db:1.0.0
           ports:
             - containerPort: 5432
           envFrom:
             - secretRef:
-                name: inventory-db-credentials
+                name: billing-db-credentials
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/main
@@ -39,10 +39,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: inventory-db-svc
+  name: billing-db-svc
   namespace: orchestrator
 spec:
   clusterIP: None
   selector:
-    app: inventory-db
-    
+    app: billing-db
