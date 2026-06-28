@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: inventory-db
+  namespace: orchestrator
+spec:
+  serviceName: inventory-db-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-db
+  template:
+    metadata:
+      labels:
+        app: inventory-db
+    spec:
+      containers:
+        - name: inventory-db
+          image: killux3k/inventory-db:1.0.0
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: inventory-db-credentials
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/main
+volumeClaimTemplates:
+  - metadata:
+      name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-db-svc
+  namespace: orchestrator
+spec:
+  clusterIP: None
+  selector:
+    app: inventory-db
+    
