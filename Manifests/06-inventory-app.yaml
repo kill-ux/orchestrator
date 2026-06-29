@@ -18,12 +18,13 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: INVENTORY_APP_PORT
+              value: "8080"
             - name: INVENTORY_DB_HOST
               value: inventory-db-svc
             - name: INVENTORY_DB_PORT
-              value: 5432
-            - name: INVENTORY_APP_PORT
-              value: 8080
+              value: "5432"
+
             - name: INVENTORY_DB_NAME
               valueFrom:
                 secretKeyRef:
@@ -42,10 +43,8 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 128Mi
             limits:
-              cpu: 500m
-              memory: 256Mi          
+              cpu: 500m        
 ---
 
 apiVersion: v1
@@ -59,3 +58,25 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: inventory-app-hpa
+  namespace: orchestrator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: inventory-app
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource: 
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
