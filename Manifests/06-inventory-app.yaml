@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-app
+  namespace: orchestrator 
+spec:
+  selector:
+    matchLabels:
+      app: inventory-app
+  template:
+    metadata:
+      labels:
+        app: inventory-app
+    spec:
+      containers:
+        - name: inventory-app
+          image: killux3k/inventory-app:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: INVENTORY_DB_HOST
+              value: inventory-db-svc
+            - name: INVENTORY_DB_PORT
+              value: 5432
+            - name: INVENTORY_APP_PORT
+              value: 8080
+            - name: INVENTORY_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-db-credentials
+                  key: DB_NAME
+            - name: INVENTORY_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-db-credentials
+                  key: DB_USER
+            - name: INVENTORY_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-db-credentials
+                  key: DB_PASS
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi          
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-app-svc
+  namespace: orchestrator
+spec:
+  selector:
+    app: inventory-app
+  ports:
+    - port: 8080
+      targetPort: 8080

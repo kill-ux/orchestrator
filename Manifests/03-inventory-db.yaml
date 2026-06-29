@@ -45,4 +45,7 @@ spec:
   clusterIP: None
   selector:
     app: inventory-db
+  ports:
+    - port: 5432
+      targetPort: 5432
     

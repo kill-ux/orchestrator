@@ -45,3 +45,8 @@ spec:
   clusterIP: None
   selector:
     app: billing-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+
