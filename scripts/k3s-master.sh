@@ -23,7 +23,7 @@ node-taint:
 write-kubeconfig-mode: 644
 EOF
 
-    curl -sfL https://get.k3s.io | sh -
+    curl -sfL https://get.k3s.io | sh -s - --flannel-iface=eth1
 fi
 
 log "Waiting for https://${MASTER_IP}:6443/readyz ..."

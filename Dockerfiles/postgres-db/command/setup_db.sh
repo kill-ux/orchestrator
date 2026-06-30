@@ -11,6 +11,9 @@ fi
 PG_VERSION=$(ls /usr/lib/postgresql | grep -E '^[0-9]+$')
 PG_BIN="/usr/lib/postgresql/$PG_VERSION/bin"
 
+echo "check fils inside $PGDATA"
+ls $PGDATA
+
 if [ ! -d "$PGDATA/base" ]; then
     mkdir -p "$PGDATA"
     chown -R postgres:postgres "$PGDATA"

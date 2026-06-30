@@ -1,8 +1,10 @@
 # server.py
 import os
 import threading
+import time
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import OperationalError
 
 from app.orders import Base, Order
 from app.consume_queue import consume_and_store_order
@@ -22,21 +24,48 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app, model_class=Base)
 
+# with app.app_context():
+#     try:
+#         db.create_all()
+#         print("[*] Database tables verified/created successfully.", flush=True)
+#     except Exception as e:
+#         print(f"Database setup notice: {e}", flush=True)
+        
+        
+# consumer_thread = threading.Thread(
+#     target=consume_and_store_order, 
+#     args=(app, db), 
+#     daemon=True
+# )
+# consumer_thread.start()
+# print("[*] RabbitMQ background consumer thread started.", flush=True)
+
+# --- Start of Database Resilience Loop ---
 with app.app_context():
-    try:
-        db.create_all()
-        print("[*] Database tables verified/created successfully.", flush=True)
-    except Exception as e:
-        print(f"Database setup notice: {e}", flush=True)
-        
-        
-consumer_thread = threading.Thread(
-    target=consume_and_store_order, 
-    args=(app, db), 
-    daemon=True
-)
-consumer_thread.start()
-print("[*] RabbitMQ background consumer thread started.", flush=True)
+    retry_delay = 3
+    while True:
+        try:
+            print("[*] Attempting to connect to the database and verify tables...", flush=True)
+            db.create_all()
+            print("[*] Database tables verified/created successfully.", flush=True)
+            
+            consumer_thread = threading.Thread(
+                target=consume_and_store_order, 
+                args=(app, db), 
+                daemon=True
+            )
+            consumer_thread.start()
+            print("[*] RabbitMQ background consumer thread started.", flush=True)
+            
+            break
+            
+        except OperationalError as e:
+            print(f"[-] Database not ready yet ({e}). Retrying in {retry_delay} seconds...", flush=True)
+            time.sleep(retry_delay)
+        except Exception as e:
+            print(f"[-] Database setup notice (Unexpected error): {e}. Retrying in {retry_delay} seconds...", flush=True)
+            time.sleep(retry_delay)
+# --- End of Database Resilience Loop ---
 
 
 @app.route('/api/billing', methods=['GET'])

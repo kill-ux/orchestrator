@@ -2,6 +2,7 @@ from flask import Flask
 from .config import Config
 from .models import db
 import time
+from sqlalchemy.exc import OperationalError
 
 def create_app():
     app = Flask(__name__)
@@ -15,11 +16,27 @@ def create_app():
     app.register_blueprint(health_bp)
 
     db.init_app(app)
+    # with app.app_context():
+    #     try:
+    #         db.create_all()
+    #     except Exception as e:
+    #         print(f"Database setup notice: {e}", flush=True)
+    
     with app.app_context():
-        try:
-            db.create_all()
-        except Exception as e:
-            print(f"Database setup notice: {e}", flush=True)
+        retry_delay = 3
+        while True:
+            try:
+                print("Attempting to connect to the database and create tables...", flush=True)
+                db.create_all()
+                print("Database tables created/verified successfully!", flush=True)
+                break  # Connection succeeded, exit the retry loop
+            except OperationalError as e:
+                print(f"Database not ready yet ({e}). Retrying in {retry_delay} seconds...", flush=True)
+                time.sleep(retry_delay)
+            except Exception as e:
+                # Catch any other unexpected critical structural errors and log them
+                print(f"Database setup notice (Unexpected error): {e}", flush=True)
+                time.sleep(retry_delay) 
 
     @app.errorhandler(Exception)
     def handle_exception(e):

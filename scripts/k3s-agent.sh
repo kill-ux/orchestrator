@@ -39,4 +39,4 @@ token: "$TOKEN"
 node-ip: "$AGENT_IP"
 EOF
 
-curl -sfL https://get.k3s.io | sh -s - agent
+curl -sfL https://get.k3s.io | sh -s - agent --flannel-iface=eth1

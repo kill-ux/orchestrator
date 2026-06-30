@@ -15,6 +15,7 @@ spec:
       containers:
         - name: inventory-app
           image: killux3k/inventory-app:1.0.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:

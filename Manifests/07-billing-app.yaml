@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: billing-app
+  namespace: orchestrator
+spec:
+  serviceName: billing-app-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing-app
+  template:
+    metadata:
+      labels:
+        app: billing-app
+    spec:
+      containers:
+        - name: billing-app
+          image: killux3k/billing-app:1.0.0
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: rabbitmq-credentials
+          env:
+            - name: BILLING_APP_PORT
+              value: "8080"
+            - name: BILLING_DB_HOST
+              value: billing-db-svc
+            - name: BILLING_DB_PORT
+              value: "5432"
+
+            - name: BILLING_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: billing-db-credentials
+                  key: DB_NAME
+            - name: BILLING_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: billing-db-credentials
+                  key: DB_USER
+            - name: BILLING_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: billing-db-credentials
+                  key: DB_PASS
+              
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-app-svc
+  namespace: orchestrator
+spec:
+  clusterIP: None
+  selector:
+    app: billing-app
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+
+  

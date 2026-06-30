@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: orchestrator
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: killux3k/api-gateway:1.0.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: APIGATEWAY_PORT
+              value: "3000"
+
+            - name: INVENTORY_APP_HOST
+              value: inventory-app-svc
+            - name: INVENTORY_APP_PORT
+              value: "8080"
+
+            - name: BILLING_APP_HOST
+              value: billing-app-svc
+            - name: BILLING_APP_PORT
+              value: "8080"
+
+          envFrom:
+            - secretRef:
+                name: rabbitmq-credentials
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: 500m
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-svc
+  namespace: orchestrator
+spec:
+  type: NodePort
+  selector:
+    app: api-gateway
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30000
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: orchestrator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: 
+          type: Utilization
+          averageUtilization: 60
