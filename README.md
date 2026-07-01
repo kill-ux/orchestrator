@@ -6,7 +6,7 @@ stateful workload handling.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Architecture](#-architecture)
 2. [Prerequisites](#-prerequisites)
@@ -19,7 +19,7 @@ stateful workload handling.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
                           ┌─────────────────┐
@@ -75,7 +75,7 @@ stateful workload handling.
 
 ---
 
-## ✅ Prerequisites
+## Prerequisites
 
 ### Host Machine
 - **OS**: Linux / macOS / Windows (with WSL2)
@@ -107,7 +107,7 @@ A Docker Hub account with 6 public images pushed (or accessible):
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
@@ -133,7 +133,7 @@ A Docker Hub account with 6 public images pushed (or accessible):
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Network Layout
 
@@ -179,7 +179,7 @@ Both VMs communicate over VirtualBox's `vboxnet0` host-only network (192.168.56.
 
 ---
 
-## 🚀 Setup & Usage
+## Setup & Usage
 
 ### 1. Clone the repository
 ```bash
@@ -188,16 +188,13 @@ cd orchestrator
 ```
 
 ### 2. Update credentials
-
-Edit `Manifests/01-secrets.yaml` and replace the placeholder values:
+Copy `Manifests/01-secrets.yaml.example` to `Manifests/01-secrets.yaml` and replace the placeholder values:
 ```yaml
 stringData:
   DB_NAME: your_actual_db_name
   DB_PASS: your_actual_password
   DB_USER: your_actual_user
 ```
-
-> **Security**: Consider using `Manifests/01-secrets.example.yaml` as a template and add `Manifests/01-secrets.yaml` to `.gitignore`.
 
 ### 3. Start the cluster
 
@@ -206,12 +203,12 @@ stringData:
 ```
 
 This command:
-1. ✅ Installs `kubectl` on your host (if missing)
-2. ✅ Boots the master and agent VMs via Vagrant
-3. ✅ Provisions K3s on both nodes (via `Scripts/k3s-server.sh` and `Scripts/k3s-agent.sh`)
-4. ✅ Waits for the master API to be ready
-5. ✅ Configures `~/.kube/config` to point at the master
-6. ✅ Verifies both nodes are `Ready`
+1.  Installs `kubectl` on your host (if missing)
+2.  Boots the master and agent VMs via Vagrant
+3.  Provisions K3s on both nodes (via `Scripts/k3s-server.sh` and `Scripts/k3s-agent.sh`)
+4.  Waits for the master API to be ready
+5.  Configures `~/.kube/config` to point at the master
+6.  Verifies both nodes are `Ready`
 
 Expected output:
 ```
@@ -251,66 +248,59 @@ Expected output includes:
 # From your host, hit the API gateway
 curl http://192.168.56.10:30000/
 
-# Or port-forward for testing
-kubectl port-forward -n orchestrator svc/api-gateway-svc 3000:3000
-curl http://localhost:3000/
 ```
 
 ### 6. Day-to-day operations
 
 ```bash
-./orchestrator.sh start    # Boot VMs if they're halted (no-op if running)
-./orchestrator.sh stop     # Gracefully halt the VMs (K3s stops via systemd)
-./orchestrator.sh status   # Show VM and K8s node status
+./orchestrator.sh start    
+./orchestrator.sh stop    
+./orchestrator.sh status   
 ```
 
 ---
 
-## 📦 Manifests Overview
+## Manifests Overview
 
 ### `00-namespace.yaml`
 Creates the `orchestrator` namespace. All resources are deployed inside it for
 isolation and easy cleanup (`kubectl delete ns orchestrator`).
 
 ### `01-secrets.yaml`
-Stores credentials as K8s `Secret` objects (base64-encoded internally):
+Stores credentials as K8s `Secret` objects:
 - `inventory-db-credentials` (DB_USER, DB_PASS, DB_NAME)
 - `billing-db-credentials` (DB_USER, DB_PASS, DB_NAME)
-- `rabbitmq-credentials` (RABBITMQ_USER, RABBITMQ_PASS)
+- `rabbitmq-credentials` (RABBITMQ_USER, RABBITMQ_PASS,...)
 
 Per project requirement: passwords and credentials are **never** inlined in
 non-secret manifests.
 
-### `02-storageclass.yaml`
-Re-affirms the K3s default `local-path` StorageClass as the cluster default.
-Used for all PVCs in this project.
-
-### `03-inventory-db.yaml` & `04-billing-db.yaml`
+### `02-inventory-db.yaml` & `03-billing-db.yaml`
 - **StatefulSet** with `replicas: 1` (single DB instance, no clustering)
 - **Headless Service** (`clusterIP: None`) for stable per-pod DNS
 - **PVC** of 1Gi via `volumeClaimTemplates` (data persists across pod restarts)
 - **Env vars** from the corresponding Secret (`DB_USER`, `DB_PASS`, `DB_NAME`)
 - **Mount path** `/var/lib/postgresql/main` (matches the custom DB image's setup script)
 
-### `05-rabbitmq.yaml`
+### `04-rabbitmq.yaml`
 - **Deployment** with `replicas: 1` (stateless-ish; PVC for message durability)
-- **ClusterIP Service** exposing AMQP (5672) and management UI (15672)
+- **ClusterIP Service** exposing AMQP (5672)
 - **Standalone PVC** for message persistence (separate from StatefulSet's `volumeClaimTemplates`)
 - **Credentials** from `rabbitmq-credentials` Secret
 
-### `06-inventory-app.yaml`
+### `05-inventory-app.yaml`
 - **Deployment** (stateless — no PVC)
 - **ClusterIP Service** for internal access (port 8080)
 - **HPA**: 1↔3 replicas, CPU 60% target
 - **Resources**: requests `100m CPU / 128Mi RAM`, limits `500m / 256Mi`
 
-### `07-billing-app.yaml`
-- **StatefulSet** with `replicas: 1` (per project requirement — for stable identity)
+### `06-billing-app.yaml`
+- **StatefulSet** with `replicas: 1` 
 - **Headless Service** (`clusterIP: None`)
 - **No PVC** (the app doesn't persist local state; it consumes from RabbitMQ)
 - Connects to both `billing-db-svc` and `rabbitmq-svc`
 
-### `08-api-gateway.yaml`
+### `07-api-gateway.yaml`
 - **Deployment** (stateless)
 - **NodePort Service** (port 30000 on each node) — reachable from outside the cluster
 - **HPA**: 1↔3 replicas, CPU 60% target
@@ -318,7 +308,7 @@ Used for all PVCs in this project.
 
 ---
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Pod stuck in `Pending`
 - Check `kubectl describe pod <name> -n orchestrator`
@@ -354,22 +344,7 @@ vagrant destroy -f
 
 ---
 
-## 🌟 Bonus Features
-
-This project implements the mandatory part. Optional bonus ideas to consider:
-
-- **Kubernetes Dashboard**: `kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml`
-- **Helm charts**: package manifests as a Helm chart for templating and versioning
-- **Network policies**: restrict pod-to-pod traffic (e.g., only billing-app can reach billing-db)
-- **Ingress controller**: replace NodePort with proper Ingress + TLS
-- **CI/CD pipeline**: GitHub Actions to build images and deploy manifests on push
-- **Monitoring stack**: Prometheus + Grafana for metrics, Loki for logs
-- **Cert-manager**: automatic TLS certificate provisioning
-- **Longhorn**: replicated StorageClass replacing `local-path` for true HA
-
----
-
-## 📚 References
+## References
 
 - [K3s Documentation](https://docs.k3s.io/)
 - [Kubernetes Concepts](https://kubernetes.io/docs/concepts/)
@@ -381,7 +356,7 @@ This project implements the mandatory part. Optional bonus ideas to consider:
 
 ---
 
-## 👤 Author
+## Author
 
 Built as part of the **Orchestrator** project — Kubernetes introduction through
 hands-on deployment of a complete microservices architecture.
